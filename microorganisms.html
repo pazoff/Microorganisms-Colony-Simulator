@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Advanced Microorganism Life Simulation</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/addons/p5.sound.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary-bg: #1C2526;
+      --panel-bg: #2A3439;
+      --accent: #4CAF50;
+      --text: #E8ECEF;
+      --text-secondary: #B0BEC5;
+      --border: #546E7A;
+      --button-hover: #45a049;
+      --tab-active: #2196F3;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: var(--primary-bg);
+      color: var(--text);
+      font-family: 'Roboto', sans-serif;
+      touch-action: manipulation;
+    }
+
+    canvas {
+      border: 3px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      max-width: 90vw;
+      max-height: 90vh;
+      margin: 20px 0;
+    }
+
+    .controls-container {
+      width: 100%;
+      max-width: 800px;
+      margin: 20px auto;
+      background: var(--panel-bg);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      background: var(--panel-bg);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: clamp(14px, 3vw, 16px);
+    }
+
+    .tab:hover {
+      background: #37474F;
+    }
+
+    .tab.active {
+      background: var(--tab-active);
+      color: var(--text);
+      font-weight: bold;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .section {
+      margin-bottom: 20px;
+    }
+
+    .section-header {
+      cursor: pointer;
+      padding: 12px;
+      background: #37474F;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: clamp(16px, 4vw, 18px);
+      transition: background 0.3s ease;
+    }
+
+    .section-header:hover {
+      background: #455A64;
+    }
+
+    .section-content {
+      padding: 15px;
+      background: #2E3B3E;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    .section-content.active {
+      display: block;
+    }
+
+    .controls-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+      padding: 10px 0;
+    }
+
+    label {
+      font-size: clamp(13px, 3vw, 14px);
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    select, input[type="range"], input[type="number"], input[type="text"], input[type="color"] {
+      width: 100%;
+      padding: 8px;
+      font-size: clamp(13px, 3vw, 14px);
+      background: #37474F;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      box-sizing: border-box;
+      transition: background 0.3s ease;
+    }
+
+    select:hover, input:hover {
+      background: #455A64;
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      margin-right: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: clamp(14px, 3vw, 16px);
+      background: var(--accent);
+      color: var(--text);
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: var(--button-hover);
+    }
+
+    #muteButton { background: #FF9800; }
+    #muteButton:hover { background: #F57C00; }
+    #restartButton { background: #F44336; }
+    #restartButton:hover { background: #D32F2F; }
+    #addSpeciesButton { background: var(--tab-active); }
+    #addSpeciesButton:hover { background: #1976D2; }
+
+    .control-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    #controls {
+      display: none;
+      margin: 20px 0;
+      gap: 10px;
+    }
+
+    .control-button {
+      width: clamp(50px, 15vw, 70px);
+      height: clamp(50px, 15vw, 70px);
+      font-size: clamp(18px, 5vw, 24px);
+      background: var(--tab-active);
+      border-radius: 8px;
+    }
+
+    @media (max-width: 600px) {
+      .controls-row {
+        grid-template-columns: 1fr;
+      }
+
+      #controls {
+        display: grid;
+        grid-template-areas:
+          ". up ."
+          "left center right"
+          ". down .";
+        grid-gap: 8px;
+      }
+
+      #up { grid-area: up; }
+      #left { grid-area: left; }
+      #right { grid-area: right; }
+      #down { grid-area: down; }
+    }
+
+    #rules-container {
+      max-width: 800px;
+      margin: 20px auto;
+      text-align: center;
+    }
+
+    #rules {
+      display: none;
+      padding: 20px;
+      background: var(--panel-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      line-height: 1.6;
+      font-size: clamp(14px, 3vw, 15px);
+    }
+
+    #rules h2 {
+      margin-top: 0;
+      color: var(--text);
+    }
+
+    #rules ul {
+      text-align: left;
+      padding-left: 20px;
+    }
+  </style>
+  <style>
+    .main-container {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      flex-wrap: wrap;
+    }
+
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .simulation-container {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .charts-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .plot-canvas {
+      flex: 1;
+      width: 550px;
+      max-width: 550px;
+      aspect-ratio: 16 / 9;
+      background-color: #f9f9f9;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    #logBox {
+      width: 600px;                /* Fixed width */
+      height: 120px;               /* Fixed height */
+      padding: 10px;
+      background: #eff2f3;
+      color: #030303;
+      font-size: 14px;
+      font-family: monospace;
+      border-radius: 8px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      white-space: pre-wrap;
+      word-break: break-word;
+      cursor: pointer;
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    }
+
+
+    #copyMessage {
+      display: none;
+      color: #ffffff;
+      font-family: sans-serif;
+      margin-top: 5px;
+      background-color: #4caf50;
+      padding: 5px;
+      border-radius: 5px;
+      text-align: center;
+      animation: fadeInOut 3s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    @media (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
+        height: auto;
+      }
+
+      .left-panel,
+      .charts-container {
+        width: 100%;
+      }
+
+      .plot-canvas {
+        aspect-ratio: 4 / 3;
+      }
+    }
+
+  </style>
+  
+  
+</head>
+<body>
+  <div id="statsBar" style="margin-top: 10px; color: var(--text); font-size: 14px;"></div>
+  <div class="main-container">
+    <!-- Left side: simulation + log -->
+    <div class="left-panel">
+      <div class="simulation-container" id="simulationContainer">
+        <!-- Simulation content goes here -->
+      </div>
+      <div id="logBox">Simulation Log</div>
+      <div id="copyMessage"><b>SIMULATION LOG COPIED TO CLIPBOARD!</b></div>
+    </div>
+  
+    <!-- Right side: charts + controls -->
+    <div class="charts-container">
+      <canvas id="biomassChart" class="plot-canvas"></canvas>
+      <canvas id="energyChart" class="plot-canvas"></canvas>
+      <div class="controls">
+        <button id="updateGraphicsButton" onclick="plotSimulationLog()">Update Plots</button>
+        <label><input type="checkbox" id="autoUpdateCheckbox">Auto-update every 5 seconds</label>
+      </div>
+    </div>
+  </div>  
+  <div class="controls-container">
+    <div class="tabs">
+      <div class="tab active" data-tab="general">General</div>
+      <div class="tab" data-tab="species">Species</div>
+      <div class="tab" data-tab="advanced">Advanced</div>
+    </div>
+    <div class="tab-content active" id="general">
+      <div class="section">
+        <div class="section-header">Simulation Settings</div>
+        <div class="section-content active">
+          <div class="controls-row">
+            <div>
+              <label for="modeSelect">Mode:</label>
+              <select id="modeSelect" onchange="updateSimulationMode()">
+                <option value="playerVsAI">Player vs AI</option>
+                <option value="AIVsAI">AI vs AI</option>
+                <option value="colony" selected>Colony Simulation</option>
+              </select>
+            </div>
+            <div>
+              <label for="nutrientDensity">Nutrient Density:</label>
+              <input id="nutrientDensity" type="range" min="100" max="10000" value="2500" onchange="updateEnvironment()">
+            </div>
+            <div>
+              <label for="temperature">Temperature:</label>
+              <input id="temperature" type="range" min="0" max="50" value="25" onchange="updateEnvironment()">
+            </div>
+            <div>
+              <label for="pH">pH Level:</label>
+              <input id="pH" type="range" min="0" max="14" value="7" onchange="updateEnvironment()">
+            </div>
+            <div>
+              <label for="hazardCount">Hazards:</label>
+              <select id="hazardCount" onchange="updateEnvironment()">
+                <option value="0" selected>0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-content" id="species">
+      <div class="section">
+        <div class="section-header">Species Parameters</div>
+        <div class="section-content active">
+          <div id="speciesControls">
+            <div class="controls-row" data-species="species1">
+              <div>
+                <label>Species 1 Growth Rate:</label>
+                <input id="species1Growth" type="range" min="0.1" max="5" step="0.1" value="1" onchange="updateMicrobeParams()">
+              </div>
+              <div>
+                <label>Species 1 Reproduction Threshold:</label>
+                <input id="species1Reproduction" type="range" min="5" max="100" value="20" onchange="updateMicrobeParams()">
+              </div>
+              <div>
+                <label>Species 1 Initial Biomass:</label>
+                <input id="species1InitialBiomass" type="range" min="1" max="50" value="10" onchange="updateMicrobeParams()">
+              </div>
+              <div>
+                <label>Species 1 Initial Energy:</label>
+                <input id="species1InitialEnergy" type="range" min="10" max="200" value="100" onchange="updateMicrobeParams()">
+              </div>
+            </div>
+            <div class="controls-row" data-species="species2">
+              <div>
+                <label>Species 2 Growth Rate:</label>
+                <input id="species2Growth" type="range" min="0.1" max="5" step="0.1" value="1" onchange="updateMicrobeParams()">
+              </div>
+              <div>
+                <label>Species 2 Reproduction Threshold:</label>
+                <input id="species2Reproduction" type="range" min="5" max="100" value="20" onchange="updateMicrobeParams()">
+              </div>
+              <div>
+                <label>Species 2 Initial Biomass:</label>
+                <input id="species2InitialBiomass" type="range" min="1" max="50" value="10" onchange="updateктуMicrobeParams()">
+              </div>
+              <div>
+                <label>Species 2 Initial Energy:</label>
+                <input id="species2InitialEnergy" type="range" min="10" max="200" value="100" onchange="updateMicrobeParams()">
+              </div>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-header">Add New Species</div>
+            <div class="section-content">
+              <div class="controls-row">
+                <div>
+                  <label for="newSpeciesName">Name:</label>
+                  <input id="newSpeciesName" type="text" placeholder="e.g., species3">
+                </div>
+                <div>
+                  <label for="newSpeciesColor">Color:</label>
+                  <input id="newSpeciesColor" type="color" value="#00FF00">
+                </div>
+                <div>
+                  <label for="newSpeciesGrowth">Growth Rate:</label>
+                  <input id="newSpeciesGrowth" type="range" min="0.1" max="5" step="0.1" value="1">
+                </div>
+                <div>
+                  <label for="newSpeciesReproduction">Reproduction Threshold:</label>
+                  <input id="newSpeciesReproduction" type="range" min="5" max="100" value="20">
+                </div>
+                <div>
+                  <label for="newSpeciesInitialBiomass">Initial Biomass:</label>
+                  <input id="newSpeciesInitialBiomass" type="range" min="1" max="50" value="10">
+                </div>
+                <div>
+                  <label for="newSpeciesInitialEnergy">Initial Energy:</label>
+                  <input id="newSpeciesInitialEnergy" type="range" min="10" max="200" value="100">
+                </div>
+              </div>
+              <button id="addSpeciesButton" onclick="addNewSpecies()">Add Species</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-content" id="advanced">
+      <div class="section">
+        <div class="section-header">Simulation Parameters</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <div>
+              <label for="gridSize">Grid Size:</label>
+              <input id="gridSize" type="number" min="50" max="200" value="100" onchange="updateSimulationParams()">
+            </div>
+            <div>
+              <label for="maxCanvasSize">Max Canvas Size (px):</label>
+              <input id="maxCanvasSize" type="number" min="300" max="1000" value="600" onchange="updateSimulationParams()">
+            </div>
+            <div>
+              <label for="frameRate">Frame Rate:</label>
+              <input id="frameRate" type="number" min="1" max="60" value="3" onchange="updateSimulationParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Feature Toggles</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <label><input id="wasteEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Waste Production</label>
+            <label><input id="hazardsEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Hazards</label>
+            <label><input id="richNutrientEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Rich Nutrients</label>
+            <label><input id="decayEnzymeEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Decay Enzyme</label>
+            <label><input id="mutagenEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Mutagen</label>
+            <label><input id="enhancerEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Enhancers</label>
+            <label><input id="colonyFormationEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Colony Formation</label>
+            <label><input id="envEffectsEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Environmental Effects</label>
+            <label><input id="soundEnabled" type="checkbox" onchange="updateFeatureToggles()"> Sound Effects</label>
+            <label><input id="popupsEnabled" type="checkbox" checked onchange="updateFeatureToggles()"> Biomass Popups</label>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Nutrient Settings</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <div>
+              <label for="basicNutrientSpawn">Basic Nutrient Spawn Rate:</label>
+              <input id="basicNutrientSpawn" type="range" min="0" max="0.01" step="0.001" value="0.005" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="basicNutrientBiomass">Basic Nutrient Biomass Gain:</label>
+              <input id="basicNutrientBiomass" type="range" min="0.1" max="10" step="0.1" value="1" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="basicNutrientSize">Basic Nutrient Size Gain:</label>
+              <input id="basicNutrientSize" type="range" min="0" max="1" step="0.01" value="0.1" onchange="updateNutrientParams()">
+            </div>
+          </div>
+          <div class="controls-row">
+            <div>
+              <label for="richNutrientSpawn">Rich Nutrient Spawn Rate:</label>
+              <input id="richNutrientSpawn" type="range" min="0" max="0.01" step="0.001" value="0.005" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="richNutrientDuration">Rich Nutrient Duration (frames):</label>
+              <input id="richNutrientDuration" type="number" min="100" max="1000" value="300" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="richNutrientBiomass">Rich Nutrient Biomass Gain:</label>
+              <input id="richNutrientBiomass" type="range" min="1" max="20" step="0.5" value="5" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="richNutrientSize">Rich Nutrient Size Gain:</label>
+              <input id="richNutrientSize" type="range" min="0" max="2" step="0.05" value="0.5" onchange="updateNutrientParams()">
+            </div>
+          </div>
+          <div class="controls-row">
+            <div>
+              <label for="decayEnzymeSpawn">Decay Enzyme Spawn Rate:</label>
+              <input id="decayEnzymeSpawn" type="range" min="0" max="0.01" step="0.001" value="0.004" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="decayEnzymeLifetime">Decay Enzyme Lifetime (ms):</label>
+              <input id="decayEnzymeLifetime" type="number" min="1000" max="20000" value="8000" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="decayEnzymeBiomass">Decay Enzyme Biomass Gain:</label>
+              <input id="decayEnzymeBiomass" type="range" min="0.1" max="10" step="0.1" value="2" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="decayEnzymeSize">Decay Enzyme Size Change:</label>
+              <input id="decayEnzymeSize" type="range" min="-1" max="1" step="0.05" value="-0.5" onchange="updateNutrientParams()">
+            </div>
+          </div>
+          <div class="controls-row">
+            <div>
+              <label for="mutagenSpawn">Mutagen Spawn Rate:</label>
+              <input id="mutagenSpawn" type="range" min="0" max="0.01" step="0.001" value="0.003" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="mutagenLifetime">Mutagen Lifetime (ms):</label>
+              <input id="mutagenLifetime" type="number" min="1000" max="20000" value="8000" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="mutagenPositiveBiomass">Mutagen Positive Biomass Gain:</label>
+              <input id="mutagenPositiveBiomass" type="range" min="1" max="20" step="0.5" value="5" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="mutagenPositiveSize">Mutagen Positive Size Gain:</label>
+              <input id="mutagenPositiveSize" type="range" min="0" max="2" step="0.05" value="0.5" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="mutagenNegativeBiomass">Mutagen Negative Biomass Gain:</label>
+              <input id="mutagenNegativeBiomass" type="range" min="0.1" max="10" step="0.1" value="2" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="mutagenNegativeSize">Mutagen Negative Size Change:</label>
+              <input id="mutagenNegativeSize" type="range" min="-1" max="1" step="0.05" value="-0.5" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="mutagenPositiveChance">Mutagen Positive Chance:</label>
+              <input id="mutagenPositiveChance" type="range" min="0" max="1" step="0.05" value="0.5" onchange="updateNutrientParams()">
+            </div>
+          </div>
+          <div class="controls-row">
+            <div>
+              <label for="enhancerSpawn">Enhancer Spawn Rate:</label>
+              <input id="enhancerSpawn" type="range" min="0" max="0.01" step="0.001" value="0.003" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="enhancerLifetime">Enhancer Lifetime (ms):</label>
+              <input id="enhancerLifetime" type="number" min="1000" max="20000" value="8000" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="metabolismBoost">Metabolism Boost Factor:</label>
+              <input id="metabolismBoost" type="range" min="1" max="3" step="0.1" value="1.5" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="metabolismDuration">Metabolism Boost Duration (frames):</label>
+              <input id="metabolismDuration" type="number" min="100" max="1000" value="300" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="resistanceDuration">Resistance Duration (frames):</label>
+              <input id="resistanceDuration" type="number" min="100" max="1000" value="300" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="multiplierFactor">Biomass Multiplier Factor:</label>
+              <input id="multiplierFactor" type="range" min="1" max="5" step="0.5" value="2" onchange="updateNutrientParams()">
+            </div>
+            <div>
+              <label for="multiplierDuration">Multiplier Duration (frames):</label>
+              <input id="multiplierDuration" type="number" min="100" max="1000" value="300" onchange="updateNutrientParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Hazard Settings</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <div>
+              <label for="hazardMoveInterval">Hazard Move Interval (ms):</label>
+              <input id="hazardMoveInterval" type="number" min="1000" max="60000" value="30000" onchange="updateHazardParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Waste Settings</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <div>
+              <label for="wasteSpawnChance">Waste Spawn Chance:</label>
+              <input id="wasteSpawnChance" type="range" min="0" max="1" step="0.01" value="0.1" onchange="updateWasteParams()">
+            </div>
+            <div>
+              <label for="wasteLifetime">Waste Lifetime (frames):</label>
+              <input id="wasteLifetime" type="number" min="100" max="1000" value="500" onchange="updateWasteParams()">
+            </div>
+            <div>
+              <label for="wasteEnergyPenalty">Waste Energy Penalty:</label>
+              <input id="wasteEnergyPenalty" type="range" min="0" max="2" step="0.1" value="0.5" onchange="updateWasteParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Colony Formation Settings</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <div>
+              <label for="colonyReproductionChance">Reproduction Chance:</label>
+              <input id="colonyReproductionChance" type="range" min="0" max="1" step="0.005" value="0.505" onchange="updateColonyParams()">
+            </div>
+            <div>
+              <label for="colonyBiomassCost">Reproduction Biomass Cost Factor:</label>
+              <input id="colonyBiomassCost" type="range" min="0.1" max="1" step="0.05" value="0.5" onchange="updateColonyParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Popup Settings</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <div>
+              <label for="popupLifetime">Popup Lifetime (frames):</label>
+              <input id="popupLifetime" type="number" min="10" max="50" value="20" onchange="updatePopupParams()">
+            </div>
+            <div>
+              <label for="popupOpacityDecay">Popup Opacity Decay:</label>
+              <input id="popupOpacityDecay" type="range" min="1" max="10" step="0.5" value="4.5" onchange="updatePopupParams()">
+            </div>
+            <div>
+              <label for="popupYSpeed">Popup Y Speed:</label>
+              <input id="popupYSpeed" type="range" min="0.1" max="1" step="0.05" value="0.4" onchange="updatePopupParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Microbe Movement Settings</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <div>
+              <label for="moveEnergyCost">Movement Energy Cost:</label>
+              <input id="moveEnergyCost" type="range" min="0" max="5" step="0.1" value="1" onchange="updateMicrobeMoveParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header">Environmental Effect Settings</div>
+        <div class="section-content">
+          <div class="controls-row">
+            <div>
+              <label for="tempOptimal">Optimal Temperature:</label>
+              <input id="tempOptimal" type="number" min="0" max="50" value="25" onchange="updateEnvEffectParams()">
+            </div>
+            <div>
+              <label for="tempEffectStrength">Temperature Effect Strength:</label>
+              <input id="tempEffectStrength" type="range" min="0" max="1" step="0.05" value="0.04" onchange="updateEnvEffectParams()">
+            </div>
+            <div>
+              <label for="pHOptimal">Optimal pH:</label>
+              <input id="pHOptimal" type="number" min="0" max="14" value="7" onchange="updateEnvEffectParams()">
+            </div>
+            <div>
+              <label for="pHEffectStrength">pH Effect Strength:</label>
+              <input id="pHEffectStrength" type="range" min="0" max="1" step="0.05" value="0.142857" onchange="updateEnvEffectParams()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="control-buttons">
+      <button id="startButton" onclick="startSimulation()">New Simulation</button>
+      <button id="muteButton" onclick="toggleSound()">Muted</button>
+      <button id="pauseSimulationButton" onclick="pauseSimulation()">Pause Simulation</button>
+      <button id="restartButton" onclick="restartSimulation()">Restart Simulation</button>
+    </div>
+  </div>
+  
+  <div id="controls">
+    <button id="up" class="control-button" ontouchstart="setDirection(0, -1)">↑</button>
+    <button id="left" class="control-button" ontouchstart="setDirection(-1, 0)">←</button>
+    <button id="right" class="control-button" ontouchstart="setDirection(1, 0)">→</button>
+    <button id="down" class="control-button" ontouchstart="setDirection(0, 1)">↓</button>
+  </div>
+  <div id="rules-container">
+    <button onclick="toggleRules()">Help</button>
+    <div id="rules">
+      <h2>Simulation Rules</h2>
+      <ul>
+        <li><strong>Objective:</strong> Grow and form colonies by absorbing nutrients and reproducing.</li>
+        <li><strong>Modes:</strong>
+          <ul>
+            <li><strong>Player vs AI:</strong> Control a microorganism against an AI species.</li>
+            <li><strong>AI vs AI:</strong> Watch two AI species compete.</li>
+            <li><strong>Colony Simulation:</strong> Observe multiple species forming colonies.</li>
+          </ul>
+        </li>
+        <li><strong>Microorganisms:</strong> Multiple species with customizable growth, reproduction, biomass, and energy.</li>
+        <li><strong>Environment:</strong> Adjust nutrient density, temperature, pH, and hazards.</li>
+        <li><strong>Interactions:</strong> Competition for nutrients, predation, and cooperative colony formation.</li>
+        <li><strong>Hazards:</strong> Avoid acidic zones that shift periodically.</li>
+        <li><strong>Nutrients:</strong> Green (basic), Gold (rich), Pink (decay enzyme), ? (mutagen).</li>
+        <li><strong>Enhancers:</strong> Yellow (speed), Blue (resistance), Purple (biomass multiplier).</li>
+        <li><strong>Waste:</strong> Microorganisms produce waste, affecting movement and growth.</li>
+      </ul>
+    </div>
+  </div>
+  <script>
+    // Tabbed interface functionality
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Collapsible sections
+    document.querySelectorAll('.section-header').forEach(header => {
+      header.addEventListener('click', () => {
+        const content = header.nextElementSibling;
+        content.classList.toggle('active');
+      });
+    });
+
+    // Original JavaScript code (unchanged)
+    let simulationConfig = {
+      gridSize: 100,
+      maxCanvasSize: 600,
+      frameRate: 3
+    };
+
+    let featureToggles = {
+      nutrientsEnabled: true,
+      wasteEnabled: true,
+      hazardsEnabled: true,
+      richNutrientEnabled: true,
+      decayEnzymeEnabled: true,
+      mutagenEnabled: true,
+      enhancerEnabled: true,
+      colonyFormationEnabled: true,
+      envEffectsEnabled: true,
+      soundEnabled: false,
+      popupsEnabled: true
+    };
+
+    let nutrientConfig = {
+      basicNutrientSpawn: 0.005,
+      basicNutrientBiomass: 1,
+      basicNutrientSize: 0.1,
+      richNutrientSpawn: 0.005,
+      richNutrientDuration: 300,
+      richNutrientBiomass: 5,
+      richNutrientSize: 0.5,
+      decayEnzymeSpawn: 0.004,
+      decayEnzymeLifetime: 8000,
+      decayEnzymeBiomass: 2,
+      decayEnzymeSize: -0.5,
+      mutagenSpawn: 0.003,
+      mutagenLifetime: 8000,
+      mutagenPositiveBiomass: 5,
+      mutagenPositiveSize: 0.5,
+      mutagenNegativeBiomass: 2,
+      mutagenNegativeSize: -0.5,
+      mutagenPositiveChance: 0.5,
+      enhancerSpawn: 0.003,
+      enhancerLifetime: 8000,
+      metabolismBoost: 1.5,
+      metabolismDuration: 300,
+      resistanceDuration: 300,
+      multiplierFactor: 2,
+      multiplierDuration: 300
+    };
+
+    let hazardConfig = {
+      moveInterval: 30000
+    };
+
+    let wasteConfig = {
+      spawnChance: 0.1,
+      lifetime: 500,
+      energyPenalty: 0.5
+    };
+
+    let colonyConfig = {
+      reproductionChance: 0.505,
+      biomassCostFactor: 0.5
+    };
+
+    let popupConfig = {
+      lifetime: 20,
+      opacityDecay: 4.5,
+      ySpeed: 0.4
+    };
+
+    let microbeMoveConfig = {
+      energyCost: 1
+    };
+
+    let envEffectConfig = {
+      tempOptimal: 25,
+      tempEffectStrength: 0.04,
+      pHOptimal: 7,
+      pHEffectStrength: 0.142857
+    };
+
+    let tileSize;
+    let simulationStarted = false;
+    let simulationPaused = false;
+    let simulationOver = false;
+    let simulationMode = "colony";
+    let microbes = [];
+    let nutrients = [];
+    let hazards;
+    let richNutrient, decayEnzyme, mutagen, enhancer;
+    let wasteProducts = [];
+    let biomassPopups = [];
+    let environment = { nutrientDensity: 2500, temperature: 25, pH: 7 };
+    let speciesParams = {
+      species1: { growthRate: 1, reproductionThreshold: 20, initialBiomass: 10, initialEnergy: 100, color: 'blue' },
+      species2: { growthRate: 1, reproductionThreshold: 20, initialBiomass: 10, initialEnergy: 100, color: 'red' }
+    };
+    let speciesCount = 2;
+    let absorbSound, damageSound, boostSound, decaySound, simulationOverSound;
+
+    function preload() {
+      soundFormats('mp3', 'wav');
+      absorbSound = loadSound('sounds/eat.mp3');
+      damageSound = loadSound('sounds/eat.mp3');
+      boostSound = loadSound('sounds/eat.mp3');
+      decaySound = loadSound('sounds/eat.mp3');
+      simulationOverSound = loadSound('sounds/eat.mp3');
+    }
+
+    function setup() {
+      let canvasSize = min(windowWidth * 0.9, windowHeight * 0.9, simulationConfig.maxCanvasSize);
+      canvasSize = floor(canvasSize / simulationConfig.gridSize) * simulationConfig.gridSize;
+      tileSize = canvasSize / simulationConfig.gridSize;
+      let cnv = createCanvas(canvasSize, canvasSize);
+      cnv.parent("simulationContainer");
+      frameRate(simulationConfig.frameRate);
+      initializeSimulation();
+    }
+
+    function copyLogBoxContentOnClick() {
+      const logBox = document.getElementById('logBox');
+      const message = document.getElementById('copyMessage');
+
+      logBox.addEventListener('click', () => {
+        const range = document.createRange();
+        range.selectNodeContents(logBox);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        try {
+          document.execCommand('copy');
+          selection.removeAllRanges();
+
+          if (message) {
+            message.style.display = 'inline';
+            setTimeout(() => {
+              message.style.display = 'none';
+            }, 3000);
+          }
+        } catch (err) {
+          console.error('Failed to copy logBox content:', err);
+        }
+      });
+    }
+    copyLogBoxContentOnClick();
+
+    function logInitialSimulationConfig() {
+      const logBox = document.getElementById('logBox');
+      const now = new Date().toLocaleTimeString();
+
+      const toggles = Object.entries(featureToggles)
+        .map(([key, val]) => `${key}: <span style="color:${val ? 'lightgreen' : 'tomato'};">${val}</span>`)
+        .join(', ');
+
+      const speciesDetails = Object.entries(speciesParams).map(([name, cfg]) => {
+        return `<div style="margin-left:10px;">
+          <span style="color:${cfg.color}; font-weight:bold;">${name}</span> &rarr; 
+          Growth: ${cfg.growthRate}, Reproduction: ${cfg.reproductionThreshold}, 
+          Biomass: ${cfg.initialBiomass}, Energy: ${cfg.initialEnergy}
+        </div>`;
+      }).join('');
+
+      const logHTML = `
+        <div style="color:gray;">
+          [${now}] <strong>Simulation Initialized</strong><br>
+          Mode: <strong>${simulationMode}</strong><br>
+          Grid: ${simulationConfig.gridSize}x${simulationConfig.gridSize}, 
+          Canvas Max: ${simulationConfig.maxCanvasSize}px, 
+          Frame Rate: ${simulationConfig.frameRate} FPS<br>
+          Environment &rarr; Nutrient Density: ${environment.nutrientDensity}, 
+          Temperature: ${environment.temperature}&deg;C, 
+          pH: ${environment.pH}<br>
+          <br><strong>Feature Toggles:</strong><br>
+          <div style="margin-left:10px;">${toggles}</div>
+          <br><strong>Species:</strong>${speciesDetails}
+        </div>
+        <hr style="border:0;border-top:1px solid #555;">`;
+
+      logBox.innerHTML = logHTML;
+    }
+
+
+    function initializeSimulation() {
+      
+      microbes = [];
+      nutrients = [];
+      wasteProducts = [];
+      biomassPopups = [];
+      if (simulationMode === "playerVsAI") {
+        microbes.push(new Microbe(5, 5, [0, -1], speciesParams['species1'].color, 'species1', 'Player'));
+        microbes.push(new Microbe(15, 15, [0, 1], speciesParams['species2'].color, 'species2', 'AI'));
+      } else if (simulationMode === "AIVsAI") {
+        microbes.push(new Microbe(5, 5, [0, -1], speciesParams['species1'].color, 'species1', 'AI1'));
+        microbes.push(new Microbe(15, 15, [0, 1], speciesParams['species2'].color, 'species2', 'AI2'));
+      } else {
+        Object.keys(speciesParams).forEach((species, i) => {
+          for (let j = 0; j < 5; j++) {
+            microbes.push(new Microbe(
+              floor(random(simulationConfig.gridSize)),
+              floor(random(simulationConfig.gridSize)),
+              [random([-1, 1]), 0],
+              speciesParams[species].color,
+              species,
+              `${species}-${j}`
+            ));
+          }
+        });
+      }
+      for (let i = 0; i < environment.nutrientDensity; i++) {
+        nutrients.push(new Nutrient());
+      }
+      hazards = new Hazards();
+      hazards.generate(parseInt(document.getElementById('hazardCount').value));
+      richNutrient = new RichNutrient();
+      decayEnzyme = new DecayEnzyme();
+      mutagen = new Mutagen();
+      enhancer = new Enhancer();
+      document.getElementById('restartButton').style.display = 'none';
+      document.getElementById('controls').style.display = simulationMode === "playerVsAI" && isMobileDevice() ? 'grid' : 'none';
+    }
+
+    function toggleSound() {
+      featureToggles.soundEnabled = !featureToggles.soundEnabled;
+      document.getElementById('muteButton').classList.toggle('muted');
+      document.getElementById('muteButton').innerText = featureToggles.soundEnabled ? 'Sound On' : 'Muted';
+      document.getElementById('soundEnabled').checked = featureToggles.soundEnabled;
+    }
+
+    function updateSimulationParams() {
+      simulationConfig.gridSize = parseInt(document.getElementById('gridSize').value);
+      simulationConfig.maxCanvasSize = parseInt(document.getElementById('maxCanvasSize').value);
+      simulationConfig.frameRate = parseInt(document.getElementById('frameRate').value);
+      let canvasSize = min(windowWidth * 0.9, windowHeight * 0.9, simulationConfig.maxCanvasSize);
+      canvasSize = floor(canvasSize / simulationConfig.gridSize) * simulationConfig.gridSize;
+      tileSize = canvasSize / simulationConfig.gridSize;
+      resizeCanvas(canvasSize, canvasSize);
+      frameRate(simulationConfig.frameRate);
+    }
+
+    function updateFeatureToggles() {
+      featureToggles.wasteEnabled = document.getElementById('wasteEnabled').checked;
+      featureToggles.hazardsEnabled = document.getElementById('hazardsEnabled').checked;
+      featureToggles.richNutrientEnabled = document.getElementById('richNutrientEnabled').checked;
+      featureToggles.decayEnzymeEnabled = document.getElementById('decayEnzymeEnabled').checked;
+      featureToggles.mutagenEnabled = document.getElementById('mutagenEnabled').checked;
+      featureToggles.enhancerEnabled = document.getElementById('enhancerEnabled').checked;
+      featureToggles.colonyFormationEnabled = document.getElementById('colonyFormationEnabled').checked;
+      featureToggles.envEffectsEnabled = document.getElementById('envEffectsEnabled').checked;
+      featureToggles.soundEnabled = document.getElementById('soundEnabled').checked;
+      featureToggles.popupsEnabled = document.getElementById('popupsEnabled').checked;
+      document.getElementById('muteButton').innerText = featureToggles.soundEnabled ? 'Sound On' : 'Muted';
+    }
+
+    function updateNutrientParams() {
+      nutrientConfig.basicNutrientSpawn = parseFloat(document.getElementById('basicNutrientSpawn').value);
+      nutrientConfig.basicNutrientBiomass = parseFloat(document.getElementById('basicNutrientBiomass').value);
+      nutrientConfig.basicNutrientSize = parseFloat(document.getElementById('basicNutrientSize').value);
+      nutrientConfig.richNutrientSpawn = parseFloat(document.getElementById('richNutrientSpawn').value);
+      nutrientConfig.richNutrientDuration = parseInt(document.getElementById('richNutrientDuration').value);
+      nutrientConfig.richNutrientBiomass = parseFloat(document.getElementById('richNutrientBiomass').value);
+      nutrientConfig.richNutrientSize = parseFloat(document.getElementById('richNutrientSize').value);
+      nutrientConfig.decayEnzymeSpawn = parseFloat(document.getElementById('decayEnzymeSpawn').value);
+      nutrientConfig.decayEnzymeLifetime = parseInt(document.getElementById('decayEnzymeLifetime').value);
+      nutrientConfig.decayEnzymeBiomass = parseFloat(document.getElementById('decayEnzymeBiomass').value);
+      nutrientConfig.decayEnzymeSize = parseFloat(document.getElementById('decayEnzymeSize').value);
+      nutrientConfig.mutagenSpawn = parseFloat(document.getElementById('mutagenSpawn').value);
+      nutrientConfig.mutagenLifetime = parseInt(document.getElementById('mutagenLifetime').value);
+      nutrientConfig.mutagenPositiveBiomass = parseFloat(document.getElementById('mutagenPositiveBiomass').value);
+      nutrientConfig.mutagenPositiveSize = parseFloat(document.getElementById('mutagenPositiveSize').value);
+      nutrientConfig.mutagenNegativeBiomass = parseFloat(document.getElementById('mutagenNegativeBiomass').value);
+      nutrientConfig.mutagenNegativeSize = parseFloat(document.getElementById('mutagenNegativeSize').value);
+      nutrientConfig.mutagenPositiveChance = parseFloat(document.getElementById('mutagenPositiveChance').value);
+      nutrientConfig.enhancerSpawn = parseFloat(document.getElementById('enhancerSpawn').value);
+      nutrientConfig.enhancerLifetime = parseInt(document.getElementById('enhancerLifetime').value);
+      nutrientConfig.metabolismBoost = parseFloat(document.getElementById('metabolismBoost').value);
+      nutrientConfig.metabolismDuration = parseInt(document.getElementById('metabolismDuration').value);
+      nutrientConfig.resistanceDuration = parseInt(document.getElementById('resistanceDuration').value);
+      nutrientConfig.multiplierFactor = parseFloat(document.getElementById('multiplierFactor').value);
+      nutrientConfig.multiplierDuration = parseInt(document.getElementById('multiplierDuration').value);
+    }
+
+    function updateHazardParams() {
+      hazardConfig.moveInterval = parseInt(document.getElementById('hazardMoveInterval').value);
+    }
+
+    function updateWasteParams() {
+      wasteConfig.spawnChance = parseFloat(document.getElementById('wasteSpawnChance').value);
+      wasteConfig.lifetime = parseInt(document.getElementById('wasteLifetime').value);
+      wasteConfig.energyPenalty = parseFloat(document.getElementById('wasteEnergyPenalty').value);
+    }
+
+    function updateColonyParams() {
+      colonyConfig.reproductionChance = parseFloat(document.getElementById('colonyReproductionChance').value);
+      colonyConfig.biomassCostFactor = parseFloat(document.getElementById('colonyBiomassCost').value);
+    }
+
+    function updatePopupParams() {
+      popupConfig.lifetime = parseInt(document.getElementById('popupLifetime').value);
+      popupConfig.opacityDecay = parseFloat(document.getElementById('popupOpacityDecay').value);
+      popupConfig.ySpeed = parseFloat(document.getElementById('popupYSpeed').value);
+    }
+
+    function updateMicrobeMoveParams() {
+      microbeMoveConfig.energyCost = parseFloat(document.getElementById('moveEnergyCost').value);
+    }
+
+    function updateEnvEffectParams() {
+      envEffectConfig.tempOptimal = parseInt(document.getElementById('tempOptimal').value);
+      envEffectConfig.tempEffectStrength = parseFloat(document.getElementById('tempEffectStrength').value);
+      envEffectConfig.pHOptimal = parseInt(document.getElementById('pHOptimal').value);
+      envEffectConfig.pHEffectStrength = parseFloat(document.getElementById('pHEffectStrength').value);
+    }
+
+    function updateEnvironment() {
+      environment.nutrientDensity = parseInt(document.getElementById('nutrientDensity').value);
+      environment.temperature = parseInt(document.getElementById('temperature').value);
+      environment.pH = parseInt(document.getElementById('pH').value);
+      hazards.generate(parseInt(document.getElementById('hazardCount').value));
+      nutrients = [];
+      for (let i = 0; i < environment.nutrientDensity; i++) {
+        nutrients.push(new Nutrient());
+      }
+    }
+
+    function updateMicrobeParams() {
+      document.querySelectorAll('#speciesControls .controls-row').forEach(row => {
+        let species = row.dataset.species;
+        speciesParams[species].growthRate = parseFloat(document.getElementById(`${species}Growth`).value);
+        speciesParams[species].reproductionThreshold = parseInt(document.getElementById(`${species}Reproduction`).value);
+        speciesParams[species].initialBiomass = parseInt(document.getElementById(`${species}InitialBiomass`).value);
+        speciesParams[species].initialEnergy = parseInt(document.getElementById(`${species}InitialEnergy`).value);
+      });
+    }
+
+    function addNewSpecies() {
+      let name = document.getElementById('newSpeciesName').value.trim();
+      let color = document.getElementById('newSpeciesColor').value;
+      let growthRate = parseFloat(document.getElementById('newSpeciesGrowth').value);
+      let reproductionThreshold = parseInt(document.getElementById('newSpeciesReproduction').value);
+      let initialBiomass = parseInt(document.getElementById('newSpeciesInitialBiomass').value);
+      let initialEnergy = parseInt(document.getElementById('newSpeciesInitialEnergy').value);
+
+      if (!name || speciesParams[name]) {
+        alert('Please provide a unique species name.');
+        return;
+      }
+
+      speciesCount++;
+      speciesParams[name] = {
+        growthRate: growthRate,
+        reproductionThreshold: reproductionThreshold,
+        initialBiomass: initialBiomass,
+        initialEnergy: initialEnergy,
+        color: color
+      };
+
+      let speciesControls = document.getElementById('speciesControls');
+      let newControls = document.createElement('div');
+      newControls.className = 'controls-row';
+      newControls.dataset.species = name;
+      newControls.innerHTML = `
+        <div>
+          <label>${name} Growth Rate:</label>
+          <input id="${name}Growth" type="range" min="0.1" max="5" step="0.1" value="${growthRate}" onchange="updateMicrobeParams()">
+        </div>
+        <div>
+          <label>${name} Reproduction Threshold:</label>
+          <input id="${name}Reproduction" type="range" min="5" max="100" value="${reproductionThreshold}" onchange="updateMicrobeParams()">
+        </div>
+        <div>
+          <label>${name} Initial Biomass:</label>
+          <input id="${name}InitialBiomass" type="range" min="1" max="50" value="${initialBiomass}" onchange="updateMicrobeParams()">
+        </div>
+        <div>
+          <label>${name} Initial Energy:</label>
+          <input id="${name}InitialEnergy" type="range" min="10" max="200" value="${initialEnergy}" onchange="updateMicrobeParams()">
+        </div>
+      `;
+      speciesControls.appendChild(newControls);
+
+      document.getElementById('newSpeciesName').value = '';
+      document.getElementById('newSpeciesColor').value = '#00FF00';
+      document.getElementById('newSpeciesGrowth').value = '1';
+      document.getElementById('newSpeciesReproduction').value = '20';
+      document.getElementById('newSpeciesInitialBiomass').value = '10';
+      document.getElementById('newSpeciesInitialEnergy').value = '100';
+    }
+
+    function updateSimulationMode() {
+      simulationMode = document.getElementById('modeSelect').value;
+    }
+
+    function draw() {
+      background(240);
+      if (simulationStarted && !simulationOver) {
+        if (featureToggles.nutrientsEnabled) nutrients.forEach(n => n.show());
+        if (featureToggles.hazardsEnabled) {
+          hazards.show();
+          hazards.move();
+        }
+        if (featureToggles.richNutrientEnabled) {
+          richNutrient.update();
+          richNutrient.show();
+        }
+        if (featureToggles.decayEnzymeEnabled) {
+          decayEnzyme.update();
+          decayEnzyme.show();
+        }
+        if (featureToggles.mutagenEnabled) {
+          mutagen.update();
+          mutagen.show();
+        }
+        if (featureToggles.enhancerEnabled) {
+          enhancer.update();
+          enhancer.show();
+        }
+        if (featureToggles.wasteEnabled) wasteProducts.forEach(w => w.show());
+        microbes.forEach(m => {
+          if (m.name.includes('Player') && simulationMode === "playerVsAI") {
+            m.update();
+          } else {
+            m.updateAI();
+          }
+          m.show();
+        });
+        checkInteractions();
+        if (featureToggles.colonyFormationEnabled) checkColonyFormation();
+        if (featureToggles.wasteEnabled) updateWaste();
+        displayStats();
+        if (featureToggles.nutrientsEnabled && random() < nutrientConfig.basicNutrientSpawn) nutrients.push(new Nutrient());
+        if (featureToggles.decayEnzymeEnabled && random() < nutrientConfig.decayEnzymeSpawn && !decayEnzyme.active) decayEnzyme = new DecayEnzyme();
+        if (featureToggles.mutagenEnabled && random() < nutrientConfig.mutagenSpawn && !mutagen.active) mutagen = new Mutagen();
+        if (featureToggles.enhancerEnabled && random() < nutrientConfig.enhancerSpawn && !enhancer.active) enhancer = new Enhancer();
+        if (featureToggles.popupsEnabled) {
+          biomassPopups = biomassPopups.filter(p => !p.isDone());
+          biomassPopups.forEach(p => p.show());
+        }
+        if (featureToggles.wasteEnabled) {
+          wasteProducts.forEach(w => w.show());
+          wasteProducts = wasteProducts.filter(w => w.lifetime > 0);
+        }
+
+      } else if (simulationOver) {
+        textAlign(CENTER);
+        textSize(16);
+        fill(0);
+        text("Simulation Over", width / 2, height / 2);
+        const logBox = document.getElementById('logBox');
+        const entry = document.createElement('div');
+        this.timestamp = new Date().toLocaleTimeString([], { hour12: false });
+        entry.innerHTML = `<span style="color:${this.color}">[${this.timestamp}] The Simulation is Over.</span>`;
+        logBox.appendChild(entry);
+        logBox.scrollTop = logBox.scrollHeight; // auto-scroll
+        document.getElementById('restartButton').style.display = 'block';
+        setCheckboxState('autoUpdateCheckbox', 'uncheck');
+        frameRate(0);
+      } else {
+        textAlign(CENTER);
+        textSize(16);
+        fill(0);
+        text("Press 'New Simulation' to start", width / 2, height / 2);
+        document.getElementById('startButton').style.display = 'block';
+      }
+
+
+    }
+
+    function displayStats() {
+      let stats = '';
+      Object.keys(speciesParams).forEach(species => {
+        let count = microbes.filter(m => m.species === species).length;
+        stats += `<span style="color:${speciesParams[species].color}; margin-right: 15px;">${species}: ${count}</span>`;
+      });
+      stats += `<span style="margin-left: 15px;">Nutrients: ${nutrients.length} | Waste: ${wasteProducts.length}</span>`;
+      document.getElementById('statsBar').innerHTML = stats;
+    }
+
+
+    function keyPressed() {
+      if (!simulationStarted || simulationOver || simulationMode !== "playerVsAI") return;
+      let player = microbes.find(m => m.name.includes('Player'));
+      if (player) {
+        if (keyCode === UP_ARROW && player.dir[1] !== 1) player.dir = [0, -1];
+        else if (keyCode === DOWN_ARROW && player.dir[1] !== -1) player.dir = [0, 1];
+        else if (keyCode === LEFT_ARROW && player.dir[0] !== 1) player.dir = [-1, 0];
+        else if (keyCode === RIGHT_ARROW && player.dir[0] !== -1) player.dir = [1, 0];
+      }
+    }
+
+    function setDirection(dx, dy) {
+      if (!simulationStarted || simulationOver || simulationMode !== "playerVsAI") return;
+      let player = microbes.find(m => m.name.includes('Player'));
+      if (player) {
+        if (dx === 0 && dy === -1 && player.dir[1] !== 1) player.dir = [0, -1];
+        else if (dx === 0 && dy === 1 && player.dir[1] !== -1) player.dir = [0, 1];
+        else if (dx === -1 && dy === 0 && player.dir[0] !== 1) player.dir = [-1, 0];
+        else if (dx === 1 && dy === 0 && player.dir[0] !== -1) player.dir = [1, 0];
+      }
+    }
+
+    function startSimulation() {
+      simulationMode = document.getElementById('modeSelect').value;
+      updateEnvironment();
+      updateMicrobeParams();
+      updateSimulationParams();
+      updateFeatureToggles();
+      updateNutrientParams();
+      updateHazardParams();
+      updateWasteParams();
+      updateColonyParams();
+      updatePopupParams();
+      updateMicrobeMoveParams();
+      updateEnvEffectParams();
+      simulationStarted = true;
+      simulationOver = false;
+      initializeSimulation();
+      logInitialSimulationConfig();
+      simulationPaused = false;
+      document.getElementById('pauseSimulationButton').innerText = 'Pause Simulation';
+      setCheckboxState('autoUpdateCheckbox', 'check');
+    }
+
+    function restartSimulation() {
+      simulationStarted = true;
+      simulationOver = false;
+      simulationPaused = false;
+      frameRate(simulationConfig.frameRate);
+      document.getElementById('pauseSimulationButton').innerText = 'Pause Simulation';
+      setCheckboxState('autoUpdateCheckbox', 'check');
+      initializeSimulation();
+    }
+    function pauseSimulation() {
+      if (!simulationStarted || simulationOver) {
+        alert("No simulation is currently running.");
+        return;
+      }
+      
+      if (simulationPaused) {
+        simulationPaused = false;
+        frameRate(simulationConfig.frameRate);
+        document.getElementById('pauseSimulationButton').innerText = 'Pause Simulation';
+        setCheckboxState('autoUpdateCheckbox', 'check');
+      } else {
+        simulationPaused = true;
+        frameRate(0);
+        document.getElementById('pauseSimulationButton').innerText = 'Resume Simulation';
+        setCheckboxState('autoUpdateCheckbox', 'uncheck');
+      }
+    }
+    class Microbe {
+      constructor(x, y, dir, color, species, name) {
+        this.position = [x, y];
+        this.dir = dir;
+        this.color = color;
+        this.species = species;
+        this.name = name;
+        this.biomass = speciesParams[species].initialBiomass;
+        this.size = 1;
+        this.metabolismBoost = 1;
+        this.metabolismTimer = 0;
+        this.resistanceTimer = 0;
+        this.biomassMultiplier = 1;
+        this.multiplierTimer = 0;
+        this.energy = speciesParams[species].initialEnergy;
+      }
+
+      update() {
+        this.move();
+        this.consumeNutrients();
+        this.applyEnvironmentalEffects();
+        this.produceWaste();
+      }
+
+      updateAI() {
+        this.chooseDirection();
+        this.update();
+      }
+
+      move() {
+        if (this.metabolismTimer > 0) {
+          this.metabolismTimer--;
+          if (this.metabolismTimer <= 0) this.metabolismBoost = 1;
+        }
+        if (this.resistanceTimer > 0) this.resistanceTimer--;
+        if (this.multiplierTimer > 0) {
+          this.multiplierTimer--;
+          if (this.multiplierTimer <= 0) this.biomassMultiplier = 1;
+        }
+        let newPos = [this.position[0] + this.dir[0] * this.metabolismBoost, this.position[1] + this.dir[1] * this.metabolismBoost];
+        newPos[0] = (floor(newPos[0]) + simulationConfig.gridSize) % simulationConfig.gridSize;
+        newPos[1] = (floor(newPos[1]) + simulationConfig.gridSize) % simulationConfig.gridSize;
+        this.position = newPos;
+        this.energy -= microbeMoveConfig.energyCost;
+      }
+
+      consumeNutrients() {
+        for (let i = nutrients.length - 1; i >= 0; i--) {
+          let n = nutrients[i];
+          if (dist(this.position[0], this.position[1], n.x, n.y) < 0.5) {
+            this.biomass += nutrientConfig.basicNutrientBiomass * this.biomassMultiplier * speciesParams[this.species].growthRate;
+            this.size += nutrientConfig.basicNutrientSize;
+            nutrients.splice(i, 1);
+            if (featureToggles.soundEnabled) absorbSound.play();
+            biomassPopups.push(new BiomassPopup((this.x + 0.5) * tileSize, (this.y + 0.5) * tileSize, `${this.name} Grown to Size: ${this.size.toFixed(2)} Energy: ${this.energy.toFixed(2)} Biomass: ${this.biomass.toFixed(2)}`, 'green'));
+          }
+        }
+        if (featureToggles.richNutrientEnabled && richNutrient.active && dist(this.position[0], this.position[1], richNutrient.x, richNutrient.y) < 0.5) {
+          this.biomass += nutrientConfig.richNutrientBiomass * this.biomassMultiplier * speciesParams[this.species].growthRate;
+          this.size += nutrientConfig.richNutrientSize;
+          richNutrient.active = false;
+          if (featureToggles.soundEnabled) boostSound.play();
+        }
+        if (featureToggles.decayEnzymeEnabled && decayEnzyme.active && dist(this.position[0], this.position[1], decayEnzyme.x, decayEnzyme.y) < 0.5) {
+          this.biomass += nutrientConfig.decayEnzymeBiomass * this.biomassMultiplier;
+          this.size = max(1, this.size + nutrientConfig.decayEnzymeSize);
+          decayEnzyme.active = false;
+          if (featureToggles.soundEnabled) decaySound.play();
+        }
+        if (featureToggles.mutagenEnabled && mutagen.active && dist(this.position[0], this.position[1], mutagen.x, mutagen.y) < 0.5) {
+          if (random() < nutrientConfig.mutagenPositiveChance) {
+            this.biomass += nutrientConfig.mutagenPositiveBiomass * this.biomassMultiplier;
+            this.size += nutrientConfig.mutagenPositiveSize;
+            if (featureToggles.soundEnabled) boostSound.play();
+          } else {
+            this.biomass += nutrientConfig.mutagenNegativeBiomass * this.biomassMultiplier;
+            this.size = max(1, this.size + nutrientConfig.mutagenNegativeSize);
+            if (featureToggles.soundEnabled) decaySound.play();
+          }
+          mutagen.active = false;
+        }
+        if (featureToggles.enhancerEnabled && enhancer.active && dist(this.position[0], this.position[1], enhancer.x, enhancer.y) < 0.5) {
+          enhancer.applyEffect(this);
+          enhancer.active = false;
+          if (featureToggles.soundEnabled) boostSound.play();
+        }
+      }
+
+      applyEnvironmentalEffects() {
+        if (featureToggles.envEffectsEnabled) {
+          let tempEffect = 1 - abs(environment.temperature - envEffectConfig.tempOptimal) * envEffectConfig.tempEffectStrength;
+          let pHEffect = 1 - abs(environment.pH - envEffectConfig.pHOptimal) * envEffectConfig.pHEffectStrength;
+          this.biomass *= (tempEffect * pHEffect);
+          this.energy *= (tempEffect * pHEffect);
+        }
+      }
+
+      produceWaste() {
+        if (featureToggles.wasteEnabled && random() < wasteConfig.spawnChance) {
+          wasteProducts.push(new Waste(this.position[0], this.position[1]));
+        }
+      }
+
+      chooseDirection() {
+        let target = nutrients[0] || { x: random(simulationConfig.gridSize), y: random(simulationConfig.gridSize) };
+        if (featureToggles.enhancerEnabled && enhancer.active) target = enhancer;
+        else if (featureToggles.mutagenEnabled && mutagen.active) target = mutagen;
+        else if (featureToggles.decayEnzymeEnabled && decayEnzyme.active) target = decayEnzyme;
+        else if (featureToggles.richNutrientEnabled && richNutrient.active) target = richNutrient;
+        let dx = target.x - this.position[0];
+        let dy = target.y - this.position[1];
+        let newDir = [dx > 0 ? 1 : -1, 0];
+        if (abs(dy) > abs(dx)) newDir = [0, dy > 0 ? 1 : -1];
+        if (this.isValidMove(newDir)) this.dir = newDir;
+        else {
+          let dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(d => this.isValidMove(d));
+          if (dirs.length) this.dir = random(dirs);
+        }
+      }
+
+      isValidMove(dir) {
+        let next = [(this.position[0] + dir[0] + simulationConfig.gridSize) % simulationConfig.gridSize, (this.position[1] + dir[1] + simulationConfig.gridSize) % simulationConfig.gridSize];
+        if (featureToggles.hazardsEnabled && this.resistanceTimer <= 0 && hazards.positions.some(h => h[0] === next[0] && h[1] === next[1])) return false;
+        return true;
+      }
+
+      show() {
+        let c = color(this.color);
+        push();
+        noStroke();
+        fill(c);
+        ellipse(this.position[0] * tileSize + tileSize / 2, this.position[1] * tileSize + tileSize / 2, tileSize * this.size);
+        if (this.resistanceTimer > 0) {
+          fill(0, 0, 255, 50);
+          ellipse(this.position[0] * tileSize + tileSize / 2, this.position[1] * tileSize + tileSize / 2, tileSize * this.size * 1.2);
+        }
+        pop();
+      }
+    }
+
+    class Nutrient {
+      constructor() {
+        this.x = floor(random(simulationConfig.gridSize));
+        this.y = floor(random(simulationConfig.gridSize));
+      }
+      show() {
+        fill('green');
+        noStroke();
+        ellipse(this.x * tileSize + tileSize / 2, this.y * tileSize + tileSize / 2, tileSize * 0.7);
+      }
+    }
+
+    class RichNutrient {
+      constructor() {
+        this.active = false;
+        this.timer = 0;
+        this.x = 0;
+        this.y = 0;
+        this.pulseTime = 0;
+      }
+      maybeSpawn() {
+        if (featureToggles.richNutrientEnabled && !this.active && random(1) < nutrientConfig.richNutrientSpawn) {
+          this.x = floor(random(simulationConfig.gridSize));
+          this.y = floor(random(simulationConfig.gridSize));
+          this.timer = nutrientConfig.richNutrientDuration;
+          this.pulseTime = 0;
+          this.active = true;
+        }
+      }
+      update() {
+        if (this.active) {
+          this.timer--;
+          if (this.timer <= 0) this.active = false;
+        } else {
+          this.maybeSpawn();
+        }
+        this.pulseTime += 0.15;
+      }
+      show() {
+        if (this.active) {
+          let scale = sin(this.pulseTime) * 0.5 + 1.2;
+          fill(255, 215, 0);
+          noStroke();
+          ellipse(this.x * tileSize + tileSize / 2, this.y * tileSize + tileSize / 2, tileSize * scale);
+        }
+      }
+    }
+
+    class DecayEnzyme {
+      constructor() {
+        this.spawn();
+        this.timer = millis();
+        this.active = featureToggles.decayEnzymeEnabled;
+      }
+      spawn() {
+        this.x = floor(random(simulationConfig.gridSize));
+        this.y = floor(random(simulationConfig.gridSize));
+      }
+      update() {
+        if (this.active && millis() - this.timer > nutrientConfig.decayEnzymeLifetime) this.active = false;
+      }
+      show() {
+        if (this.active) {
+          push();
+          fill('pink');
+          stroke(255, 105, 180);
+          strokeWeight(2);
+          ellipse((this.x + 0.5) * tileSize, (this.y + 0.5) * tileSize, tileSize * 0.7);
+          pop();
+        }
+      }
+    }
+
+    class Mutagen {
+      constructor() {
+        this.x = floor(random(simulationConfig.gridSize));
+        this.y = floor(random(simulationConfig.gridSize));
+        this.active = featureToggles.mutagenEnabled;
+        this.spawnTime = millis();
+      }
+      update() {
+        if (this.active && millis() - this.spawnTime > nutrientConfig.mutagenLifetime) this.active = false;
+      }
+      show() {
+        if (!this.active) return;
+        stroke(128, 0, 128);
+        strokeWeight(2);
+        fill(255);
+        rect(this.x * tileSize, this.y * tileSize, tileSize, tileSize, 4);
+        noStroke();
+        fill(128, 0, 128);
+        textAlign(CENTER, CENTER);
+        textSize(tileSize * 0.8);
+        text("?", this.x * tileSize + tileSize / 2, this.y * tileSize + tileSize / 2);
+      }
+    }
+
+    class Enhancer {
+      constructor() {
+        this.types = ['metabolism', 'resistance', 'multiplier'];
+        this.type = random(this.types);
+        this.x = floor(random(simulationConfig.gridSize));
+        this.y = floor(random(simulationConfig.gridSize));
+        this.active = featureToggles.enhancerEnabled;
+        this.spawnTime = millis();
+        this.pulseTime = 0;
+      }
+      update() {
+        if (this.active && millis() - this.spawnTime > nutrientConfig.enhancerLifetime) this.active = false;
+        this.pulseTime += 0.15;
+      }
+      show() {
+        if (!this.active) return;
+        let scale = sin(this.pulseTime) * 0.5 + 1.2;
+        push();
+        noStroke();
+        if (this.type === 'metabolism') {
+          fill(255, 255, 0);
+          triangle(
+            this.x * tileSize + tileSize * 0.3, this.y * tileSize + tileSize * 0.7,
+            this.x * tileSize + tileSize * 0.5, this.y * tileSize + tileSize * 0.3,
+            this.x * tileSize + tileSize * 0.7, this.y * tileSize + tileSize * 0.7
+          );
+        } else if (this.type === 'resistance') {
+          fill(0, 0, 255);
+          ellipse(this.x * tileSize + tileSize / 2, this.y * tileSize + tileSize / 2, tileSize * scale);
+        } else if (this.type === 'multiplier') {
+          fill(128, 0, 128);
+          beginShape();
+          for (let i = 0; i < 5; i++) {
+            let angle = TWO_PI / 5 * i;
+            let r = tileSize * 0.5 * scale;
+            vertex(this.x * tileSize + tileSize / 2 + r * cos(angle), this.y * tileSize + tileSize / 2 + r * sin(angle));
+            angle += TWO_PI / 10;
+            r = tileSize * 0.25 * scale;
+            vertex(this.x * tileSize + tileSize / 2 + r * cos(angle), this.y * tileSize + tileSize / 2 + r * sin(angle));
+          }
+          endShape(CLOSE);
+        }
+        pop();
+      }
+      applyEffect(microbe) {
+        if (this.type === 'metabolism') {
+          microbe.metabolismBoost = nutrientConfig.metabolismBoost;
+          microbe.metabolismTimer = nutrientConfig.metabolismDuration;
+          if (featureToggles.popupsEnabled) {
+            biomassPopups.push(new BiomassPopup((this.x + 0.5) * tileSize, (this.y + 0.5) * tileSize, `${microbe.name} Speed Up!`, 'orange'));
+          }
+        } else if (this.type === 'resistance') {
+          microbe.resistanceTimer = nutrientConfig.resistanceDuration;
+          if (featureToggles.popupsEnabled) {
+            biomassPopups.push(new BiomassPopup((this.x + 0.5) * tileSize, (this.y + 0.5) * tileSize, `${microbe.name} gets Resistant to Hazards!`, 'blue'));
+          }
+        } else if (this.type === 'multiplier') {
+          microbe.biomassMultiplier = nutrientConfig.multiplierFactor;
+          microbe.multiplierTimer = nutrientConfig.multiplierDuration;
+          if (featureToggles.popupsEnabled) {
+            biomassPopups.push(new BiomassPopup((this.x + 0.5) * tileSize, (this.y + 0.5) * tileSize, `${microbe.name} x${nutrientConfig.multiplierFactor} Biomass production!`, 'purple'));
+          }
+        }
+      }
+    }
+
+    class Hazards {
+      constructor() {
+        this.positions = [];
+        this.lastMoved = 0;
+      }
+      generate(numHazards) {
+        if (!featureToggles.hazardsEnabled) {
+          this.positions = [];
+          return;
+        }
+        this.positions = [];
+        while (this.positions.length < numHazards) {
+          let x = floor(random(simulationConfig.gridSize));
+          let y = floor(random(simulationConfig.gridSize));
+          let pos = [x, y];
+          let overlaps = microbes.some(m => m.position[0] === x && m.position[1] === y) ||
+                         nutrients.some(n => n.x === x && n.y === y) ||
+                         this.positions.some(h => h[0] === x && h[1] === y);
+          if (!overlaps) this.positions.push(pos);
+        }
+      }
+      move() {
+        if (featureToggles.hazardsEnabled && millis() - this.lastMoved >= hazardConfig.moveInterval) {
+          this.lastMoved = millis();
+          this.generate(this.positions.length);
+        }
+      }
+      show() {
+        if (!featureToggles.hazardsEnabled) return;
+        fill('black');
+        noStroke();
+        for (let pos of this.positions) {
+          rect(pos[0] * tileSize, pos[1] * tileSize, tileSize, tileSize);
+        }
+      }
+    }
+
+    class Waste {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.lifetime = wasteConfig.lifetime;
+      }
+      show() {
+        fill(139, 69, 19, 150);
+        noStroke();
+        ellipse(this.x * tileSize + tileSize / 2, this.y * tileSize + tileSize / 2, tileSize * 0.5);
+        this.lifetime--;
+      }
+    }
+
+    function checkInteractions() {
+      for (let i = microbes.length - 1; i >= 0; i--) {
+        let m1 = microbes[i];
+        if (m1.biomass <= 0 || m1.energy <= 0) {
+          microbes.splice(i, 1);
+          if (featureToggles.popupsEnabled) {
+            biomassPopups.push(new BiomassPopup((m1.position[0] + 0.5) * tileSize, (m1.position[1] + 0.5) * tileSize, `${m1.name} has died: Energy: ${m1.energy.toFixed(2)} Biomass: ${m1.biomass.toFixed(2)}`, 'red'));
+          }
+          continue;
+        }
+        if (featureToggles.hazardsEnabled && m1.resistanceTimer <= 0 && hazards.positions.some(h => h[0] === floor(m1.position[0]) && h[1] === floor(m1.position[1]))) {
+          m1.biomass = 0;
+          if (featureToggles.popupsEnabled) {
+            biomassPopups.push(new BiomassPopup((m1.position[0] + 0.5) * tileSize, (m1.position[1] + 0.5) * tileSize, `${m1.name} Hit Hazard! Energy: ${m1.energy.toFixed(2)} Biomass: ${m1.biomass.toFixed(2)}`, 'red'));
+          }
+          if (featureToggles.soundEnabled) damageSound.play();
+        }
+        for (let j = i - 1; j >= 0; j--) {
+          let m2 = microbes[j];
+          if (floor(m1.position[0]) === floor(m2.position[0]) && floor(m1.position[1]) === floor(m2.position[1])) {
+            if (m1.species !== m2.species) {
+              let stronger = m1.biomass > m2.biomass ? m1 : m2;
+              let weaker = m1.biomass > m2.biomass ? m2 : m1;
+              stronger.biomass += weaker.biomass * 0.5;
+              weaker.biomass = 0;
+              if (featureToggles.popupsEnabled) {
+                biomassPopups.push(new BiomassPopup((weaker.position[0] + 0.5) * tileSize, (weaker.position[1] + 0.5) * tileSize, `${weaker.name} Consumed by ${stronger.name}: New Energy: ${stronger.energy.toFixed(2)} Biomass: ${stronger.biomass.toFixed(2)}`, 'red'));
+              }
+              if (featureToggles.soundEnabled) damageSound.play();
+            }
+          }
+        }
+      }
+      if (microbes.length === 0 || microbes.every(m => m.species === microbes[0].species)) {
+        simulationOver = true;
+        document.getElementById('restartButton').style.display = 'block';
+        if (featureToggles.soundEnabled) simulationOverSound.play();
+      }
+    }
+
+    function checkColonyFormation() {
+      if (!featureToggles.colonyFormationEnabled) return;
+      microbes.forEach(m => {
+        if (m.biomass >= speciesParams[m.species].reproductionThreshold && random() < colonyConfig.reproductionChance) {
+          let newX = (floor(m.position[0]) + random([-1, 1]) + simulationConfig.gridSize) % simulationConfig.gridSize;
+          let newY = (floor(m.position[1]) + random([-1, 1]) + simulationConfig.gridSize) % simulationConfig.gridSize;
+          if (!hazards.positions.some(h => h[0] === newX && h[1] === newY) &&
+              !microbes.some(m2 => floor(m2.position[0]) === newX && floor(m2.position[1]) === newY)) {
+            microbes.push(new Microbe(newX, newY, [random([-1, 1]), 0], m.color, m.species, `${m.species}-${microbes.length}`));
+            m.biomass -= speciesParams[m.species].reproductionThreshold * colonyConfig.biomassCostFactor;
+            if (featureToggles.popupsEnabled) {
+              biomassPopups.push(new BiomassPopup((newX + 0.5) * tileSize, (newY + 0.5) * tileSize, `${m.species} Reproduced. Spawning ${m.species}-${microbes.length} Energy: ${m.energy.toFixed(2)} Biomass: ${m.biomass.toFixed(2)}.`, m.color));
+            }
+          }
+        }
+      });
+    }
+
+    function updateWaste() {
+      if (!featureToggles.wasteEnabled) return;
+      wasteProducts = wasteProducts.filter(w => w.lifetime > 0);
+      microbes.forEach(m => {
+        wasteProducts.forEach(w => {
+          if (floor(m.position[0]) === floor(w.x) && floor(m.position[1]) === floor(w.y)) {
+            m.energy -= wasteConfig.energyPenalty;
+            if (featureToggles.popupsEnabled) {
+              
+              biomassPopups.push(new BiomassPopup(
+                (m.position[0] + 0.5) * tileSize,
+                (m.position[1] + 0.5) * tileSize,
+                `${m.name} -${wasteConfig.energyPenalty} energy down by waste! Energy: ${m.energy.toFixed(2)} Biomass: ${m.biomass.toFixed(2)}`,
+                'brown'
+              ));
+              
+            }
+          }
+        });
+      });
+    }
+
+  class BiomassPopup {
+    constructor(x, y, message, color = 'white') {
+      this.message = message;
+      this.color = color;
+      this.timestamp = new Date().toLocaleTimeString([], { hour12: false });
+      this.logToBox();
+    }
+
+    logToBox() {
+      const logBox = document.getElementById('logBox');
+      const entry = document.createElement('div');
+      entry.innerHTML = `<span style="color:${this.color}">[${this.timestamp}] ${this.message}</span>`;
+      logBox.appendChild(entry);
+      logBox.scrollTop = logBox.scrollHeight; // auto-scroll
+    }
+
+    show() {} // No-op, since we're not rendering in canvas
+    isDone() { return true; } // Instant popups
+  }
+
+
+
+function toggleRules() {
+let rules = document.getElementById('rules');
+rules.style.display = rules.style.display === 'block' ? 'none' : 'block';
+}
+
+function isMobileDevice() {
+return /Mobi|Android/i.test(navigator.userAgent);
+}
+
+function windowResized() {
+let canvasSize = min(windowWidth * 0.9, windowHeight * 0.9, simulationConfig.maxCanvasSize);
+canvasSize = floor(canvasSize / simulationConfig.gridSize) * simulationConfig.gridSize;
+tileSize = canvasSize / simulationConfig.gridSize;
+resizeCanvas(canvasSize, canvasSize);
+}
+
+
+// Store chart instances to destroy them later
+let biomassChartInstance = null;
+let energyChartInstance = null;
+
+function plotSimulationLog() {
+    document.getElementById('biomassChart').style.display = 'block';
+    document.getElementById('energyChart').style.display = 'block';
+
+    // Destroy existing chart instances if they exist
+    if (biomassChartInstance) {
+        biomassChartInstance.destroy();
+        biomassChartInstance = null;
+    }
+    if (energyChartInstance) {
+        energyChartInstance.destroy();
+        energyChartInstance = null;
+    }
+
+    // Get log data from div
+    const logBox = document.getElementById('logBox');
+    const logLines = logBox.innerText.split('\n').filter(line => line.trim() && line !== 'Simulation Log');
+
+    // Data structures
+    const speciesData = {}; // {species: {instance: [{time, biomass, energy}]}}
+    const speciesNames = new Set();
+    const timePoints = new Set();
+    let startTime = null;
+
+    // Regex patterns
+    const timestampRegex = /^\[(\d{2}:\d{2}:\d{2})\]/;
+    const speciesRegex = /([a-zA-Z0-9_]+)-(\d+)/;
+    const grownRegex = /Grown to Size: (\d+\.\d{2}) Energy: (\d+\.\d{2}) Biomass: (\d+\.\d{2})/;
+    const wasteRegex = /-0\.5 energy down by waste! Energy: (\d+\.\d{2}) Biomass: (\d+\.\d{2})/;
+    const reprodRegex = /Reproduced\. Spawning ([a-zA-Z0-9_]+)-(\d+) Energy: (\d+\.\d{2}) Biomass: (\d+\.\d{2})/;
+    const deathRegex = /([a-zA-Z0-9_]+)-(\d+) has died: Energy: [-\d+\.\d{2}] Biomass: (\d+\.\d{2})/;
+    const consumedRegex = /([a-zA-Z0-9_]+)-(\d+) Consumed by ([a-zA-Z0-9_]+)-(\d+): New Energy: (\d+\.\d{2}) Biomass: (\d+\.\d{2})/;
+
+    // Parse log lines
+    logLines.forEach(line => {
+        // Extract timestamp
+        const timestampMatch = line.match(timestampRegex);
+        if (!timestampMatch) return;
+        const timestamp = timestampMatch[1];
+        if (!startTime) {
+            startTime = new Date(`01/01/2023 ${timestamp}`);
+        }
+        const timeSeconds = (new Date(`01/01/2023 ${timestamp}`) - startTime) / 1000;
+        timePoints.add(timeSeconds);
+
+        // Extract species and instance
+        const speciesMatch = line.match(speciesRegex);
+        if (!speciesMatch) return;
+        const [_, species, instanceId] = speciesMatch;
+        speciesNames.add(species);
+        const instanceKey = `${species}-${instanceId}`;
+
+        // Initialize species and instance
+        if (!speciesData[species]) speciesData[species] = {};
+        if (!speciesData[species][instanceKey]) speciesData[species][instanceKey] = [];
+
+        // Parse events
+        if (grownRegex.test(line)) {
+            const [, , energy, biomass] = line.match(grownRegex);
+            speciesData[species][instanceKey].push({ time: timeSeconds, biomass: parseFloat(biomass), energy: parseFloat(energy) });
+        } else if (wasteRegex.test(line)) {
+            const [, energy, biomass] = line.match(wasteRegex);
+            speciesData[species][instanceKey].push({ time: timeSeconds, biomass: parseFloat(biomass), energy: parseFloat(energy) });
+        } else if (reprodRegex.test(line)) {
+            const [, newSpecies, newId, energy, biomass] = line.match(reprodRegex);
+            speciesNames.add(newSpecies);
+            if (!speciesData[newSpecies]) speciesData[newSpecies] = {};
+            const newInstanceKey = `${newSpecies}-${newId}`;
+            if (!speciesData[newSpecies][newInstanceKey]) speciesData[newSpecies][newInstanceKey] = [];
+            speciesData[newSpecies][newInstanceKey].push({ time: timeSeconds, biomass: parseFloat(biomass), energy: parseFloat(energy) });
+        } else if (deathRegex.test(line)) {
+            const [, deadSpecies, deadId, biomass] = line.match(deathRegex);
+            const deadInstanceKey = `${deadSpecies}-${deadId}`;
+            speciesData[deadSpecies][deadInstanceKey].push({ time: timeSeconds, biomass: parseFloat(biomass), energy: 0 });
+            delete speciesData[deadSpecies][deadInstanceKey];
+        } else if (consumedRegex.test(line)) {
+            const [, consumedSpecies, consumedId, consumerSpecies, consumerId, newEnergy, newBiomass] = line.match(consumedRegex);
+            const consumedInstanceKey = `${consumedSpecies}-${consumedId}`;
+            const consumerInstanceKey = `${consumerSpecies}-${consumerId}`;
+            if (speciesData[consumedSpecies] && speciesData[consumedSpecies][consumedInstanceKey]) {
+                speciesData[consumedSpecies][consumedInstanceKey].push({ time: timeSeconds, biomass: 0, energy: 0 });
+            }
+            if (!speciesData[consumerSpecies]) speciesData[consumerSpecies] = {};
+            if (!speciesData[consumerSpecies][consumerInstanceKey]) speciesData[consumerSpecies][consumerInstanceKey] = [];
+            speciesData[consumerSpecies][consumerInstanceKey].push({ time: timeSeconds, biomass: parseFloat(newBiomass), energy: parseFloat(newEnergy) });
+        }
+    });
+
+    // Calculate averages
+    const sortedTimePoints = Array.from(timePoints).sort((a, b) => a - b);
+    const sortedSpeciesNames = Array.from(speciesNames).sort();
+    const avgBiomass = {};
+    const avgEnergy = {};
+    sortedSpeciesNames.forEach(species => {
+        avgBiomass[species] = [];
+        avgEnergy[species] = [];
+    });
+
+    sortedTimePoints.forEach(time => {
+        sortedSpeciesNames.forEach(species => {
+            let biomassSum = 0;
+            let energySum = 0;
+            let count = 0;
+            if (speciesData[species]) {
+                Object.keys(speciesData[species]).forEach(instance => {
+                    const latestData = speciesData[species][instance].find(d => d.time <= time);
+                    if (latestData && latestData.energy > 0) {
+                        biomassSum += latestData.biomass;
+                        energySum += latestData.energy;
+                        count++;
+                    }
+                });
+            }
+            avgBiomass[species].push(count > 0 ? biomassSum / count : 0);
+            avgEnergy[species].push(count > 0 ? energySum / count : 0);
+        });
+    });
+
+    // Plot data using Chart.js
+    function getSpeciesColor(species) {
+        return (speciesParams[species] && speciesParams[species].color) || 'gray'; // fallback
+    }
+
+
+    // Biomass chart
+    const biomassCtx = document.getElementById('biomassChart').getContext('2d');
+    biomassChartInstance = new Chart(biomassCtx, {
+        type: 'line',
+        data: {
+            labels: sortedTimePoints,
+            datasets: sortedSpeciesNames.map((species, i) => ({
+                label: `${species} Biomass`,
+                data: avgBiomass[species],
+                borderColor: getSpeciesColor(species),
+                fill: false,
+                tension: 0.1
+            }))
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Average Biomass Over Time'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time (seconds)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Average Biomass'
+                    }
+                }
+            }
+        }
+    });
+
+    // Energy chart
+    const energyCtx = document.getElementById('energyChart').getContext('2d');
+    energyChartInstance = new Chart(energyCtx, {
+        type: 'line',
+        data: {
+            labels: sortedTimePoints,
+            datasets: sortedSpeciesNames.map((species, i) => ({
+                label: `${species} Energy`,
+                data: avgEnergy[species],
+                borderColor: getSpeciesColor(species),
+                fill: false,
+                tension: 0.1
+            }))
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Average Energy Over Time'
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time (seconds)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Average Energy'
+                    }
+                }
+            }
+        }
+    });
+}
+
+</script>
+
+<script>
+  function setCheckboxState(checkboxId, action) {
+    const checkbox = document.getElementById(checkboxId);
+
+    if (checkbox) {
+      if (action === 'check' && !checkbox.checked) {
+        checkbox.click();  // Simulate a click to check it
+      } else if (action === 'uncheck' && checkbox.checked) {
+        checkbox.click();  // Simulate a click to uncheck it
+      }
+    }
+  }
+
+
+  let intervalId = null;
+
+  document.getElementById('autoUpdateCheckbox').addEventListener('change', function () {
+    const button = document.getElementById('updateGraphicsButton');
+
+    if (this.checked) {
+      button.click(); // Optional: remove if you don't want an immediate update
+      intervalId = setInterval(() => {
+        button.click();
+      }, 5000);
+    } else {
+      clearInterval(intervalId);
+    }
+  });
+</script>
+
+</body> </html>
