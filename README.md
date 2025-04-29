@@ -9,6 +9,8 @@ This project is ideal for educational purposes, research simulations, or interac
 
 👉 [Microorganisms Colony Simulator Online](https://pazoff.github.io/Microorganisms-Colony-Simulator/)
 
+👉 [More Projects](https://pazoff.github.io/)
+
 ## Features
 
 - **Three Simulation Modes**:
