@@ -7,6 +7,8 @@ The **Microorganisms Colony Simulator** is an interactive web-based simulation b
 
 This project is ideal for educational purposes, research simulations, or interactive demonstrations of ecological and biological systems.
 
+👉 [Microorganisms Colony Simulator Online](https://pazoff.github.io/Microorganisms-Colony-Simulator/)
+
 ## Features
 
 - **Three Simulation Modes**:
