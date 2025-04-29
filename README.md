@@ -1,4 +1,7 @@
 # Microorganisms Colony Simulator
+Turn ★ into ⭐ (top-right corner) if you like the project!
+
+<a href="https://www.buymeacoffee.com/pazoff" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 40px !important;width: 190px !important;" ></a>
 
 The **Microorganisms Colony Simulator** is an interactive web-based simulation built using **p5.js** and **Chart.js** to model the behavior of microorganisms in a dynamic environment. Users can explore microbial growth, reproduction, and interactions under customizable conditions, including nutrient availability, environmental factors, and hazards. The simulator supports multiple simulation modes, real-time visualization, and detailed logging with graphical analysis of biomass and energy dynamics.
 
